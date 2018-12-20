@@ -21,11 +21,9 @@ app.contract.decimals = config.contract.decimals;
 app.dist = {};
 app.dist.address = config.dist.address;
 app.dist.privateKey = config.dist.privateKey;
-
 // Bot configuration
 app.bot1 = config.bot1;
 app.bot2 = config.bot2;
-
 // Chain ID configuration
 app.chainId = config.chainId;
 
