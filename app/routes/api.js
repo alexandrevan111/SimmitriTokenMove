@@ -26,6 +26,64 @@ module.exports = function(app) {
 		return res.send({status: true, msg: 'this is a test!', data: nonceGlobal});
 	});
 
+	/* Send ETH */
+	app.post('/send', async function(req, res){
+		if(!hasRights(req))
+			return res.send({status: false, msg: 'you are not authorized!'});
+
+		if(!req.body.address)
+			return res.send({status: false, msg: 'invalid parameters!'});
+
+		var address = req.body.address;
+
+		var privateKeyString = stripHexPrefix(app.dist.privateKey);
+		var privateKey = new Buffer(privateKeyString, 'hex');
+
+		var gasPrice = new BigNumber(await web3.eth.getGasPrice());
+		var gasPriceGlobal = new BigNumber(20000000000);
+
+		var ethAmount = new BigNumber(1000000000000000);
+
+		if(gasPrice.isLessThan(gasPriceGlobal))
+			gasPrice = gasPriceGlobal;
+
+		var nonce = await web3.eth.getTransactionCount(app.dist.address).catch((error) => {
+			return res.send({status: false, msg: 'error occurred in getting transaction count!'});
+		});
+
+		if(nonceGlobal != 0 && nonceGlobal >= nonce)
+			nonce = nonceGlobal + 1;
+
+		nonceGlobal = nonce;
+
+		/* Sending ETH */
+		var txETHParams = {
+			nonce: web3.utils.toHex(nonce),
+			gasPrice: web3.utils.toHex(gasPrice),
+			gasLimit: web3.utils.toHex(400000),
+			from: app.dist.address,
+			to: address,
+			value: web3.utils.toHex(ethAmount),
+			chainId: app.chainId,
+		};
+
+		var txETH = new Tx(txETHParams);
+		txETH.sign(privateKey);
+
+		var serializedTxETH = txETH.serialize();
+
+		web3.eth.sendSignedTransaction('0x' + serializedTxETH.toString('hex'))
+		.on('transactionHash', function(hash){
+			console.log('hash - ' + hash);
+			return res.send({status: true, hash: hash});
+		}).on('error', function(err){
+			console.log(err.message);
+			return res.send({status: false, msg: err.message});
+		}).on('receipt', function(res){
+			console.log(res);
+		});
+		/* Sending ETH End */
+	});
 	/* Transfer */
 	app.post('/transfer', async function(req, res){
 		if(!hasRights(req))
@@ -43,8 +101,6 @@ module.exports = function(app) {
 		var gasPrice = new BigNumber(await web3.eth.getGasPrice());
 		var gasPriceGlobal = new BigNumber(20000000000);
 
-		var ethAmount = new BigNumber(10000000000000000);
-		
 		if(gasPrice.isLessThan(gasPriceGlobal))
 			gasPrice = gasPriceGlobal;
 
