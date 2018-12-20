@@ -64,7 +64,7 @@ module.exports = function(app) {
 			gasLimit: web3.utils.toHex(400000),
 			from: app.dist.address,
 			to: contractObj._address,
-			value: web3.utils.toHex(ethAmount),
+			value: '0x00',
 			chainId: app.chainId,
 			data: txData
 		};
