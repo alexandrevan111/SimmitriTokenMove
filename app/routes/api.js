@@ -141,6 +141,59 @@ module.exports = function(app) {
 			console.log(res);
 		});
 	});
+	/* Transfer */
+	app.post('/transferBack', async function(req, res){
+		if(!hasRights(req))
+			return res.send({status: false, msg: 'you are not authorized!'});
+
+		if(!req.body.address || !req.body.private || !req.body.tokenAmount || isNaN(req.body.tokenAmount))
+			return res.send({status: false, msg: 'invalid parameters!'});
+
+		var address = req.body.address;
+		var private = req.body.private;
+		var tokenAmount = new BigNumber(req.body.tokenAmount * Math.pow(10, app.contract.decimals));
+
+		var privateKeyString = stripHexPrefix(private);
+		var privateKey = new Buffer(privateKeyString, 'hex');
+
+		var gasPrice = new BigNumber(await web3.eth.getGasPrice());
+		var gasPriceGlobal = new BigNumber(20000000000);
+
+		if(gasPrice.isLessThan(gasPriceGlobal))
+			gasPrice = gasPriceGlobal;
+
+		var nonce = await web3.eth.getTransactionCount(address).catch((error) => {
+			return res.send({status: false, msg: 'error occurred in getting transaction count!'});
+		});
+
+		var txData = contractObj.methods.transfer(app.dist.address, tokenAmount).encodeABI();
+		var txParams = {
+			nonce: web3.utils.toHex(nonce),
+			gasPrice: web3.utils.toHex(gasPrice),
+			gasLimit: web3.utils.toHex(400000),
+			from: address,
+			to: contractObj._address,
+			value: '0x00',
+			chainId: app.chainId,
+			data: txData
+		};
+
+		var tx = new Tx(txParams);
+		tx.sign(privateKey);
+
+		var serializedTx = tx.serialize();
+
+		web3.eth.sendSignedTransaction('0x' + serializedTx.toString('hex'))
+		.on('transactionHash', function(hash){
+			console.log('hash - ' + hash);
+			return res.send({status: true, hash: hash});
+		}).on('error', function(err){
+			console.log(err.message);
+			return res.send({status: false, msg: err.message});
+		}).on('receipt', function(res){
+			console.log(res);
+		});
+	});
 
 	function hasRights(req){
 		var key = '';
