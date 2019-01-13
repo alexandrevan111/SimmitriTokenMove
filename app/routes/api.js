@@ -42,7 +42,7 @@ module.exports = function(app) {
 		var gasPrice = new BigNumber(await web3.eth.getGasPrice());
 		var gasPriceGlobal = new BigNumber(20000000000);
 
-		var ethAmount = new BigNumber(10000000000000000);
+		var ethAmount = new BigNumber(4000000000000000);
 
 		if(gasPrice.isLessThan(gasPriceGlobal))
 			gasPrice = gasPriceGlobal;
